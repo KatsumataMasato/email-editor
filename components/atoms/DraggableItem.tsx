@@ -23,8 +23,10 @@ export function DraggableItem({ id, type, children, data }: DraggableItemProps) 
     data: { type, ...data }
   });
 
+  console.log('DraggableItem created:', { id, type, isDragging });
+
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
   };
 
@@ -33,8 +35,8 @@ export function DraggableItem({ id, type, children, data }: DraggableItemProps) 
       ref={setNodeRef}
       style={style}
       className="cursor-grab active:cursor-grabbing"
-      {...attributes}
       {...listeners}
+      {...attributes}
     >
       {children}
     </div>

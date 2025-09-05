@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+お
+<html>
+  <head>
+    <title>Rich Text Editor Test</title>
+    <style>
+      .editor {
+        border: 2px solid #ccc;
+        min-height: 200px;
+        padding: 10px;
+        margin: 10px 0;
+      }
+      .toolbar button {
+        margin: 5px;
+        padding: 5px 10px;
+      }
+      .result {
+        background: #f0f0f0;
+        padding: 10px;
+        margin: 10px 0;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rich Text Editor Test</h1>
+
+    <div class="toolbar">
+      <button onclick="execCmd('bold')">Bold</button>
+      <button onclick="execCmd('italic')">Italic</button>
+      <button onclick="execCmd('underline')">Underline</button>
+      <button onclick="execCmd('fontSize', '5')">Large Font</button>
+      <input type="color" onchange="execCmd('foreColor', this.value)" />
+      <button onclick="showContent()">Show HTML</button>
+    </div>
+
+    <div id="editor" class="editor" contenteditable="true">
+      Type some text here and test formatting...
+    </div>
+
+    <div>HTML Content:</div>
+    <div id="result" class="result"></div>
+
+    <script>
+      function execCmd(command, value) {
+        console.log("Executing command:", command, value);
+
+        const editor = document.getElementById("editor");
+        editor.focus();
+
+        // Select all if no selection
+        if (window.getSelection().toString().trim() === "") {
+          const range = document.createRange();
+          range.selectNodeContents(editor);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+        }
+
+        const success = document.execCommand(command, false, value);
+        console.log("Command result:", success);
+
+        setTimeout(showContent, 100);
+      }
+
+      function showContent() {
+        const editor = document.getElementById("editor");
+        const result = document.getElementById("result");
+        result.textContent = editor.innerHTML;
+        console.log("Current HTML:", editor.innerHTML);
+      }
+
+      // Show initial content
+      showContent();
+    </script>
+  </body>
+</html>

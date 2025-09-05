@@ -7,7 +7,9 @@ import {
   DragStartEvent,
   DragOverlay,
   closestCenter,
-  pointerWithin
+  PointerSensor,
+  useSensor,
+  useSensors
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { 
@@ -42,7 +44,23 @@ export function EmailEditorLayout() {
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isSaving, setIsSaving] = useState(false);
   const [componentCounter, setComponentCounter] = useState(1); // 決定的なID生成用
+  const [isClient] = useState(true); // SSR対応フラグ - 一時的に無効化
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // センサーの設定
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px移動でドラッグ開始
+      },
+    })
+  );
+
+  // SSR対応を一時的に無効化
+  // useEffect(() => {
+  //   setIsClient(true);
+  //   console.log('EmailEditorLayout mounted, setting isClient to true');
+  // }, []);
 
   const updateComponent = useCallback((id: string, data: any) => {
     console.log('updateComponent called:', id, data);
@@ -133,6 +151,7 @@ export function EmailEditorLayout() {
   }, [selectedId, updateComponent]);
 
   const handleDragStart = (event: DragStartEvent) => {
+    console.log('Drag started:', event.active.id, event.active.data);
     setActiveId(event.active.id as string);
   };
 
@@ -186,9 +205,13 @@ export function EmailEditorLayout() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
+    console.log('Drag ended:', { active: active.id, over: over?.id, data: active.data.current });
     setActiveId(null);
     
-    if (!over) return;
+    if (!over) {
+      console.log('No drop target found');
+      return;
+    }
 
     // 新しいコンポーネントの追加
     if (active.id.toString().startsWith('new-')) {
@@ -401,7 +424,9 @@ export function EmailEditorLayout() {
     switch (type) {
       case 'text':
         return { 
-          text: 'テキストを入力してください', 
+          text: 'テキストを入力してください',
+          richText: 'テキストを入力してください',
+          useRichText: true, // 最初からリッチテキスト有効
           fontSize: '16px', 
           color: '#000000', 
           textAlign: 'left',
@@ -513,74 +538,168 @@ export function EmailEditorLayout() {
     }
   };
 
+  // SSRの場合はDndContext無しで表示
+  if (!isClient) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-50">
+        {/* トップツールバー */}
+        <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+          <div className="flex items-center space-x-2">
+            <h1 className="text-lg font-semibold text-gray-800">📧 Email Designer</h1>
+            <Separator orientation="vertical" className="h-6" />
+            <Button variant="ghost" size="sm">
+              <Undo size={16} className="mr-1" />
+              元に戻す
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Redo size={16} className="mr-1" />
+              やり直し
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {/* ビューモード切り替え */}
+            <div className="flex bg-gray-100 rounded-md p-1">
+              <Button
+                variant={viewMode === 'desktop' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('desktop')}
+                className="h-8"
+              >
+                <Monitor size={16} className="mr-1" />
+                デスクトップ
+              </Button>
+              <Button
+                variant={viewMode === 'mobile' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('mobile')}
+                className="h-8"
+              >
+                <Smartphone size={16} className="mr-1" />
+                モバイル
+              </Button>
+            </div>
+            
+            <Separator orientation="vertical" className="h-6" />
+            
+            {/* アクションボタン */}
+            <Button variant="outline" size="sm" onClick={handlePreview}>
+              <Eye size={16} className="mr-1" />
+              プレビュー
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleTestSend}>
+              <Send size={16} className="mr-1" />
+              テスト送信
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save size={16} className="mr-1" />
+              {isSaving ? '保存中...' : '保存'}
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Settings size={16} />
+            </Button>
+          </div>
+        </div>
+
+        {/* メインコンテンツエリア */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* 左パネル - コンポーネントライブラリ */}
+          <div className="w-80 border-r bg-white border-gray-200 overflow-y-auto">
+            <ComponentLibrary />
+          </div>
+
+          {/* 中央 - キャンバス */}
+          <div className="flex-1 flex flex-col">
+            {/* SSR中は静的表示 */}
+            <div className="flex-1 p-4 bg-gray-100">
+              <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+                <div className="p-8 text-center text-gray-500">
+                  <Monitor size={48} className="mx-auto mb-4 opacity-50" />
+                  <p>メールエディターを読み込み中...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 右パネル - プロパティは非表示 */}
+        </div>
+      </div>
+    );
+  }
+
+  console.log('EmailEditorLayout render, DndContext setup');
+
   return (
     <DndContext
+      sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragOver={(event) => {
+        console.log('Drag over:', event.active.id, event.over?.id);
+      }}
     >
-      <div className="flex flex-col h-screen bg-gray-50">
-      {/* トップツールバー */}
-      <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
-        <div className="flex items-center space-x-2">
-          <h1 className="text-lg font-semibold text-gray-800">📧 Email Designer</h1>
-          <Separator orientation="vertical" className="h-6" />
-          <Button variant="ghost" size="sm">
-            <Undo size={16} className="mr-1" />
-            元に戻す
+      <div className="flex flex-col h-screen bg-gray-100">
+      {/* トップツールバー - 参考UIスタイル */}
+      <div className="h-12 bg-slate-700 text-white flex items-center justify-between px-4">
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-white hover:bg-slate-600 rounded-none border-b-2 border-transparent hover:border-white"
+          >
+            ✏️ DESIGN
           </Button>
-          <Button variant="ghost" size="sm">
-            <Redo size={16} className="mr-1" />
-            やり直し
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-slate-300 hover:text-white hover:bg-slate-600"
+            onClick={handlePreview}
+          >
+            👁️ PREVIEW
           </Button>
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* ビューモード切り替え */}
-          <div className="flex bg-gray-100 rounded-md p-1">
-            <Button
-              variant={viewMode === 'desktop' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('desktop')}
-              className="h-8"
-            >
-              <Monitor size={16} className="mr-1" />
-              デスクトップ
-            </Button>
-            <Button
-              variant={viewMode === 'mobile' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('mobile')}
-              className="h-8"
-            >
-              <Smartphone size={16} className="mr-1" />
-              モバイル
-            </Button>
-          </div>
-          
-          <Separator orientation="vertical" className="h-6" />
-          
-          {/* アクションボタン */}
-          <Button variant="outline" size="sm" onClick={handlePreview}>
-            <Eye size={16} className="mr-1" />
-            プレビュー
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleTestSend}>
-            <Send size={16} className="mr-1" />
-            テスト送信
-          </Button>
           <Button 
-            size="sm" 
+            variant="outline" 
+            size="sm"
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
           >
-            <Save size={16} className="mr-1" />
-            {isSaving ? '保存中...' : '保存'}
+            💾 {isSaving ? 'Saving...' : 'Save'}
           </Button>
-          <Button variant="ghost" size="sm">
-            <Settings size={16} />
+          <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white">
+            ↶ Undo
           </Button>
+          <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white">
+            ↷ Redo
+          </Button>
+        </div>
+      </div>
+      
+      {/* セカンダリツールバー */}
+      <div className="h-10 bg-white border-b border-gray-200 flex items-center px-4">
+        <div className="flex items-center space-x-6 text-sm">
+          <Button variant="ghost" size="sm" className="text-blue-600 font-medium border-b-2 border-blue-600">
+            Build
+          </Button>
+          <Button variant="ghost" size="sm" className="text-gray-500">
+            Settings
+          </Button>
+          <Button variant="ghost" size="sm" className="text-gray-500">
+            Tags
+          </Button>
+        </div>
+        <div className="ml-auto flex items-center space-x-4 text-sm text-gray-600">
+          <span>Subject:</span>
+          <span>Preheader:</span>
         </div>
       </div>
 

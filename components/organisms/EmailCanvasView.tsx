@@ -34,12 +34,14 @@ function CanvasDropZone({ children }: { children: React.ReactNode }) {
     id: 'email-canvas',
   });
 
+  console.log('CanvasDropZone render, isOver:', isOver);
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
         "min-h-96 transition-all duration-200",
-        isOver && "bg-blue-50"
+        isOver && "bg-blue-50 border-blue-300"
       )}
     >
       {children}
@@ -121,12 +123,11 @@ export function EmailCanvasView({
                     strategy={verticalListSortingStrategy}
                   >
                     {sortedComponents.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-                        <Plus size={48} className="mb-4 opacity-50" />
-                        <p className="text-lg font-medium mb-2">メールを作成しましょう</p>
-                        <p className="text-sm text-center max-w-xs">
-                          左のコンポーネントライブラリからドラッグ&ドロップして<br />
-                          メールコンテンツを追加してください
+                      <div className="flex flex-col items-center justify-center py-32 text-gray-400 border-2 border-dashed border-gray-200 m-8 rounded-lg">
+                        <div className="text-6xl mb-4 opacity-30">📧</div>
+                        <p className="text-xl font-medium mb-2 text-gray-500">Drag Module Here</p>
+                        <p className="text-sm text-center text-gray-400">
+                          Start building your email by dragging modules from the left panel
                         </p>
                       </div>
                     ) : (

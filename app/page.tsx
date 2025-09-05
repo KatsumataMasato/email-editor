@@ -1,5 +1,9 @@
 import CustomEmailEditor from '@/components/CustomEmailEditor';
 
 export default function Home() {
-  return <CustomEmailEditor />;
+  return (
+    <div>
+      <CustomEmailEditor />
+    </div>
+  );
 }

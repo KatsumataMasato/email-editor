@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Type, 
   Image, 
@@ -51,34 +51,44 @@ const categoryTitles = {
 };
 
 export function ComponentLibrary() {
-  const renderComponentsByCategory = (category: 'basic' | 'layout' | 'social') => {
-    const components = componentTypes.filter(comp => comp.category === category);
-    
+  const [isClient] = useState(true); // SSR対応を一時的に無効化
+
+  console.log('ComponentLibrary render, isClient:', isClient);
+
+  // SSRハイドレーション問題を避けるため、クライアントサイドでのみドラッグ機能を有効化
+  // useEffect(() => {
+  //   setIsClient(true);
+  // }, []);
+
+  const renderComponentGrid = (components: ComponentType[]) => {
     return (
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700 px-4">
-          {categoryTitles[category]}
-        </h3>
-        {components.map(({ type, icon: Icon, label, description }) => (
-          <div key={type} className="px-4">
-            <DraggableItem
-              id={`new-${type}`}
-              type={type}
-            >
-              <div className="group flex items-start p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-grab active:cursor-grabbing">
-                <div className="flex-shrink-0 p-2 bg-gray-100 rounded-md group-hover:bg-blue-100 transition-colors">
-                  <Icon size={16} className="text-gray-600 group-hover:text-blue-600" />
-                </div>
-                <div className="ml-3 flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 group-hover:text-blue-900">
+      <div className="grid grid-cols-3 gap-3 p-4">
+        {components.map(({ type, icon: Icon, label }) => (
+          <div key={type}>
+            {isClient ? (
+              <DraggableItem
+                id={`new-${type}`}
+                type={type}
+              >
+                <div className="group flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all min-h-[80px]">
+                  <div className="flex-shrink-0 p-2 bg-gray-100 rounded-md group-hover:bg-blue-100 transition-colors mb-2">
+                    <Icon size={20} className="text-gray-600 group-hover:text-blue-600" />
+                  </div>
+                  <p className="text-xs font-medium text-gray-900 group-hover:text-blue-900 text-center">
                     {label}
                   </p>
-                  <p className="text-xs text-gray-500 group-hover:text-blue-700 mt-1">
-                    {description}
-                  </p>
                 </div>
+              </DraggableItem>
+            ) : (
+              <div className="group flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all min-h-[80px]">
+                <div className="flex-shrink-0 p-2 bg-gray-100 rounded-md group-hover:bg-blue-100 transition-colors mb-2">
+                  <Icon size={20} className="text-gray-600 group-hover:text-blue-600" />
+                </div>
+                <p className="text-xs font-medium text-gray-900 group-hover:text-blue-900 text-center">
+                  {label}
+                </p>
               </div>
-            </DraggableItem>
+            )}
           </div>
         ))}
       </div>
@@ -86,36 +96,28 @@ export function ComponentLibrary() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-          <Mail size={20} className="mr-2" />
-          コンポーネント
+    <div className="h-full flex flex-col bg-gray-50">
+      <div className="p-4 border-b border-gray-200 bg-white">
+        <h2 className="text-sm font-semibold text-gray-800 mb-4">
+          ADD MODULES
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          ドラッグしてキャンバスに配置
-        </p>
       </div>
       
-      <div className="flex-1 overflow-y-auto py-4">
-        <div className="space-y-6">
-          {renderComponentsByCategory('basic')}
-          <Separator className="mx-4" />
-          {renderComponentsByCategory('layout')}
-          <Separator className="mx-4" />
-          {renderComponentsByCategory('social')}
-        </div>
+      <div className="flex-1 overflow-y-auto">
+        {renderComponentGrid(componentTypes)}
       </div>
       
-      {/* テンプレートセクション */}
-      <div className="border-t border-gray-200 p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">
-          🎨 テンプレート
-        </h3>
-        <div className="space-y-2">
-          <div className="p-2 rounded border border-dashed border-gray-300 text-center">
-            <p className="text-xs text-gray-500">近日公開</p>
-          </div>
+      {/* 拡張セクション */}
+      <div className="border-t border-gray-200 bg-white">
+        <div className="p-4 space-y-2">
+          <button className="w-full text-left p-2 text-sm text-gray-600 hover:text-gray-800 flex items-center">
+            <div className="w-2 h-2 mr-2">▶</div>
+            GLOBAL STYLES
+          </button>
+          <button className="w-full text-left p-2 text-sm text-gray-600 hover:text-gray-800 flex items-center">
+            <div className="w-2 h-2 mr-2">▶</div>
+            ADVANCED
+          </button>
         </div>
       </div>
     </div>

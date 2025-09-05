@@ -30,13 +30,15 @@ export function ImageComponent({
 
   console.log('ImageComponent render:', { src, isLoading, imageLoadError, imageLoaded });
 
-  // srcが変更された時にimageLoadedをリセット
+  // srcが変更された時にimageLoadedをリセット（但し、同じURLの場合はリセットしない）
+  const [prevSrc, setPrevSrc] = useState<string | undefined>(src);
   React.useEffect(() => {
-    if (src) {
+    if (src && src !== prevSrc) {
       setImageLoaded(false);
       setImageLoadError(false);
+      setPrevSrc(src);
     }
-  }, [src]);
+  }, [src, prevSrc]);
 
   const handleResize = (e: React.MouseEvent) => {
     if (!imageRef.current || !containerRef.current) return;
@@ -125,7 +127,11 @@ export function ImageComponent({
   }
 
   return (
-    <div ref={containerRef} className="relative inline-block min-h-[200px] max-w-full">
+    <div 
+      ref={containerRef} 
+      className="relative inline-block min-h-[200px] max-w-full"
+      style={{ zIndex: isResizing ? 1000 : 'auto' }}
+    >
       {/* 画像読み込みエラー表示 */}
       {imageLoadError ? (
         <div className="w-full h-full min-h-[200px] flex flex-col items-center justify-center bg-red-50 border-2 border-red-200 rounded">
@@ -191,10 +197,15 @@ export function ImageComponent({
           
           {/* リサイズハンドル */}
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize opacity-70 hover:opacity-100 z-10"
-            onMouseDown={handleResize}
+            className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize opacity-70 hover:opacity-100"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleResize(e);
+            }}
             style={{
-              clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)'
+              clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)',
+              zIndex: 1001
             }}
           />
         </>
